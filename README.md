@@ -15,11 +15,11 @@ This repository contains a comprehensive Power BI Dashboard developed during the
 ## 🖼️ Dashboard Preview
 
 ### 1. Executive Summary (Page 1)
-![Executive Dashboard](Screenshots/Screenshot_1.png)
+![Executive Dashboard](image 1.png)
 *Provides a bird's-eye view of organizational performance and KPI tracking.*
 
 ### 2. Detailed Analysis (Page 2)
-![Detailed Analysis](Screenshots/Screenshot_2.png)
+![Detailed Analysis](image 2.png)
 *A deeper dive into product performance and regional trends with interactive cross-filtering.*
 
 ---
@@ -35,4 +35,4 @@ This repository contains a comprehensive Power BI Dashboard developed during the
 3. (Optional) Once published, a live link to the Power BI Service will be provided here.
 
 ---
-**Contact:** [Your Name] | [Your LinkedIn Link]
+**Contact:** Yash Patil | https://www.linkedin.com/in/yash-patil279

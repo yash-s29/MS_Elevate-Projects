@@ -15,11 +15,13 @@ This repository contains a comprehensive Power BI Dashboard developed during the
 ## 🖼️ Dashboard Preview
 
 ### 1. Executive Summary (Page 1)
-![Executive Dashboard](image 1.png)
+![Executive Dashboard] 
+<img width="2850" height="1483" alt="Image" src="https://github.com/user-attachments/assets/cb46139c-d099-445e-a3c8-9d744efce885" />
 *Provides a bird's-eye view of organizational performance and KPI tracking.*
 
 ### 2. Detailed Analysis (Page 2)
-![Detailed Analysis](image 2.png)
+![Detailed Analysis] 
+<img width="2878" height="1500" alt="Image" src="https://github.com/user-attachments/assets/9e2e46c2-963f-440c-9ea7-830c5518df06" />
 *A deeper dive into product performance and regional trends with interactive cross-filtering.*
 
 ---

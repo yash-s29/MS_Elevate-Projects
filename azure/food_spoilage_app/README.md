@@ -8,9 +8,9 @@ The Food Spoilage Prediction App is a web-based application designed to predict 
 
 # 🚀 Key Features
 
--- Real-Time Spoilage Prediction: Users can input key parameters of food items, and the app predicts spoilage status instantly.
+* Real-Time Spoilage Prediction: Users can input key parameters of food items, and the app predicts spoilage status instantly.
 
--- Flask Backend: Handles ML model inference and API endpoints.
+* Flask Backend: Handles ML model inference and API endpoints.
 
 -- Cloud-Hosted ML Model: The trained model is stored on Google Cloud Storage, fetched at app startup.
 
@@ -136,3 +136,4 @@ food_spoilage_app/
 )
 
 This README explains everything a visitor or collaborator needs to know: tech stack, cloud integration, Azure constraints, local setup, and architecture.
+

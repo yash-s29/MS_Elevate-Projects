@@ -1,0 +1,262 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spoilage Predictor • Smart Food Storage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ================= ANIMATED BACKGROUND ================= -->
+<div class="background-animation">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+</div>
+
+<!-- ================= NAVBAR ================= -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">
+            <span class="brand-icon animate-float">🍃</span>
+            <span class="brand-text">Spoilage Predictor</span>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="/" class="nav-link active" data-link="home">Home</a></li>
+            <li><a href="/#about" class="nav-link" data-link="about" onclick="scrollToSection(event, 'about-section')">About</a></li>
+            <li><a href="/feedback" class="nav-link" data-link="feedback">Feedback</a></li>
+            <li><a href="/history" class="nav-link" data-link="history">History</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+    <div class="hero-background">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+    </div>
+    
+    <div class="hero-inner">
+        <div class="page-eyebrow">Smart Food Storage</div>
+        
+        <div class="hero-text">
+            <h1 class="hero-title">
+                <span class="word-wrapper"><span class="word">Predict</span></span>
+                <span class="word-wrapper"><span class="word">Food</span></span>
+                <span class="word-wrapper"><span class="word">Spoilage</span></span>
+                <br>
+                <span class="gradient-text">
+                    <span class="word-wrapper"><span class="word">Before</span></span>
+                    <span class="word-wrapper"><span class="word">It</span></span>
+                    <span class="word-wrapper"><span class="word">Happens</span></span>
+                </span>
+            </h1>
+            <p class="hero-subtitle">
+                Advanced AI-powered analysis of your storage conditions to prevent food waste and save money
+            </p>
+        </div>
+
+        <div class="hero-cta">
+            <a href="#predictor-section" class="btn-primary btn-large" onclick="scrollToSection(event, 'predictor-section')">
+                <span class="btn-text">Start Predicting</span>
+                <span class="btn-shine"></span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- ================= MAIN ================= -->
+<main class="main-container">
+
+    <!-- ========= PREDICTOR SECTION ========= -->
+    <section id="predictor-section" class="glass-card predictor-section stagger-in">
+        <div class="section-header">
+            <div class="section-badge">🔬 PREDICTION ENGINE</div>
+            <h2>Storage Condition Analysis</h2>
+            <p>
+                Enter your current storage parameters and let our trained ML model assess the spoilage risk with precision
+            </p>
+        </div>
+
+        <form method="POST" action="/predict" class="prediction-form" id="predictionForm">
+
+            <div class="form-grid">
+
+                <div class="form-group form-group-animated">
+                    <label for="fruit" class="form-label">
+                        Food Item
+                    </label>
+                    <div class="select-wrapper">
+                        <select id="fruit" name="fruit" required>
+                            <option value="">Select an item</option>
+                            <option value="Banana">Banana</option>
+                            <option value="Orange">Orange</option>
+                            <option value="Pineapple">Pineapple</option>
+                            <option value="Tomato">Tomato</option>
+                        </select>
+                        <div class="select-icon">▼</div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-animated">
+                    <label for="temp" class="form-label">
+                        Temperature
+                    </label>
+                    <div class="input-wrapper">
+                        <input id="temp" type="number" step="0.1" name="temp" placeholder="22" required>
+                        <span class="input-unit">°C</span>
+                    </div>
+                    <div class="input-slider-track" id="tempSlider"></div>
+                </div>
+
+                <div class="form-group form-group-animated">
+                    <label for="humid" class="form-label">
+                        Humidity
+                    </label>
+                    <div class="input-wrapper">
+                        <input id="humid" type="number" step="0.1" name="humid_%" placeholder="85" required>
+                        <span class="input-unit">%</span>
+                    </div>
+                    <div class="input-slider-track" id="humidSlider"></div>
+                </div>
+
+                <div class="form-group form-group-animated">
+                    <label for="light" class="form-label">
+                        Light Exposure
+                    </label>
+                    <div class="input-wrapper">
+                        <input id="light" type="number" step="0.1" name="light_fux" placeholder="500" required>
+                        <span class="input-unit">Lux</span>
+                    </div>
+                    <div class="input-slider-track" id="lightSlider"></div>
+                </div>
+
+                <div class="form-group form-group-animated">
+                    <label for="co2" class="form-label">
+                        CO₂ Level
+                    </label>
+                    <div class="input-wrapper">
+                        <input id="co2" type="number" step="0.1" name="co2_pmm" placeholder="400" required>
+                        <span class="input-unit">ppm</span>
+                    </div>
+                    <div class="input-slider-track" id="co2Slider"></div>
+                </div>
+
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary btn-large">
+                    <span class="btn-text">Predict Spoilage Risk</span>
+                    <span class="btn-shine"></span>
+                </button>
+            </div>
+
+            <div class="form-footer">
+                <p class="form-note">All predictions are processed securely and instantly</p>
+            </div>
+
+        </form>
+    </section>
+
+    <!-- ========= ABOUT & CTA ========= -->
+     <!-- ================= PAGE HEADER ================= -->
+<header class="page-header">
+    <div class="page-header-content">
+        <div class="page-eyebrow">ℹ️ Learn More</div>
+        <h1 class="page-title">About Spoilage Predictor</h1>
+</header>
+<!-- ================= MAIN ================= -->
+<main class="main-container">
+
+    <!-- ===== PROBLEM & VISION ===== -->
+    <section class="glass-card about-section" id="about-section">
+        <h2>The Problem We’re Solving</h2>
+        <p>
+            Food spoilage is one of the leading causes of household and commercial
+            food waste. In many cases, food is discarded not because it is unsafe,
+            but because its condition is uncertain.
+        </p>
+        <p>
+            Spoilage Predictor aims to reduce this uncertainty by providing
+            data-driven insights based on real storage conditions
+            enabling smarter decisions before spoilage occurs.
+        </p>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="info-section">
+        <div class="info-card">
+            <h3>Input Real Conditions</h3>
+            <p>
+                Users provide measurable storage parameters such as temperature,
+                humidity, light exposure, and CO₂ concentration for common food items.
+            </p>
+        </div>
+
+        <div class="info-card">
+            <h3>Machine Learning Analysis</h3>
+            <p>
+                A trained classification model evaluates these parameters using
+                learned patterns from historical data to assess spoilage risk.
+            </p>
+        </div>
+
+        <div class="info-card">
+            <h3>Actionable Output</h3>
+            <p>
+                The system returns a clear, interpretable result
+                indicating whether current conditions are safe or
+                require attention.
+            </p>
+        </div>
+    </section>
+
+
+    <!-- ===== IMPACT ===== -->
+    <section class="cta-section">
+        <div class="cta-card glass-card">
+            <h2>Why This Project Matters</h2>
+            <p>
+                By encouraging informed decisions, Spoilage Predictor supports
+                sustainability, reduces unnecessary waste, and demonstrates
+                how machine learning can solve practical, real-world problems.
+            </p>
+
+
+        <div class="about-cta">
+            <p class="about-highlight">Ready to make smarter food storage decisions?</p>
+            <a href="#predictor-section" class="btn-secondary" onclick="scrollToSection(event, 'predictor-section')">
+                Start Your Prediction Now
+            </a>
+        </div>
+    </section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-main">
+            <h3>Spoilage Predictor</h3>
+            <p>Smart AI-powered food storage analysis</p>
+        </div>
+        <div class="footer-divider"></div>
+        <p class="footer-copyright">
+            © 2026 Spoilage Predictor • Making Food Storage Smarter
+        </p>
+    </div>
+</footer>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+
+

@@ -1,6 +1,4 @@
-flask==3.1.2
-gunicorn==23.0.0
-joblib==1.5.3
+﻿joblib==1.5.3
 numpy==2.4.2
 pandas==3.0.0
 python-dateutil==2.9.0.post0
@@ -9,4 +7,3 @@ scipy==1.17.0
 six==1.17.0
 threadpoolctl==3.6.0
 tzdata==2025.3
-Pillow==11.0.0

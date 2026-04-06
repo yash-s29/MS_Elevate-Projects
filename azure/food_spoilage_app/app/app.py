@@ -1,22 +1,29 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import joblib
 import pandas as pd
 import sqlite3
 import os
 from datetime import datetime
 
-app = Flask(__name__)
+# =====================================================
+# BASE CONFIG
+# =====================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+STATIC_FOLDER = os.path.join(BASE_DIR, "static")
+
+app = Flask(__name__, static_folder=STATIC_FOLDER, static_url_path="")
+CORS(app)
 
 # =====================================================
 # PATHS
 # =====================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 MODEL_PATH = os.path.join(BASE_DIR, "..", "model", "artifacts", "spoilage_model.pkl")
 DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 # =====================================================
-# LOAD MODEL (fail fast if missing)
+# LOAD MODEL
 # =====================================================
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
@@ -38,13 +45,13 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fruit TEXT NOT NULL,
-            temp REAL NOT NULL,
-            humid REAL NOT NULL,
-            light REAL NOT NULL,
-            co2 REAL NOT NULL,
-            prediction TEXT NOT NULL,
-            timestamp TEXT NOT NULL
+            fruit TEXT,
+            temp REAL,
+            humid REAL,
+            light REAL,
+            co2 REAL,
+            prediction TEXT,
+            timestamp TEXT
         )
     """)
 
@@ -54,8 +61,8 @@ def init_db():
             name TEXT,
             email TEXT,
             rating INTEGER,
-            message TEXT NOT NULL,
-            timestamp TEXT NOT NULL
+            message TEXT,
+            timestamp TEXT
         )
     """)
 
@@ -65,45 +72,31 @@ def init_db():
 init_db()
 
 # =====================================================
-# ROUTES
+# REACT SERVING (IMPORTANT)
 # =====================================================
 
 @app.route("/")
-def index():
-    return "Flask API is running 🚀"
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
+def serve():
+    return send_from_directory(app.static_folder, "index.html")
 
-@app.route("/feedback", methods=["GET", "POST"])
-def feedback():
-    if request.method == "POST":
-        name = request.form.get("name")
-        email = request.form.get("email")
-        rating = request.form.get("rating")
-        message = request.form.get("message")
+@app.route("/<path:path>")
+def static_proxy(path):
+    file_path = os.path.join(app.static_folder, path)
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO feedback (name, email, rating, message, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            name,
-            email,
-            rating,
-            message,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ))
-        conn.commit()
-        conn.close()
+    if os.path.exists(file_path):
+        return send_from_directory(app.static_folder, path)
+
+    return send_from_directory(app.static_folder, "index.html")
+
+# =====================================================
+# API ROUTES
+# =====================================================
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.get_json()
 
-        # ✅ match frontend keys EXACTLY
         fruit = data["fruit"]
         temp = float(data["temp"])
         humid = float(data["humid"])
@@ -113,7 +106,6 @@ def predict():
     except (KeyError, ValueError, TypeError):
         return jsonify({"error": "Invalid input"}), 400
 
-    # ✅ match your model feature names
     input_df = pd.DataFrame([{
         "fruit": fruit,
         "temp": temp,
@@ -125,9 +117,9 @@ def predict():
     prediction_num = model.predict(input_df)[0]
     prediction = "Good" if prediction_num == 1 else "Bad"
 
-    # ✅ store in DB (unchanged)
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("""
         INSERT INTO predictions
         (fruit, temp, humid, light, co2, prediction, timestamp)
@@ -141,33 +133,73 @@ def predict():
         prediction,
         datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     ))
+
     conn.commit()
     conn.close()
 
-    # ✅ RETURN JSON (critical fix)
-    return jsonify({ "prediction": prediction })
-@app.route("/history")
+    return jsonify({"prediction": prediction})
+
+
+@app.route("/history", methods=["GET"])
 def history():
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("SELECT * FROM predictions ORDER BY id DESC")
     rows = cursor.fetchall()
+
     conn.close()
 
-    return render_template("history.html", rows=rows)
+    return jsonify([dict(row) for row in rows])
 
-@app.route("/delete/<int:prediction_id>", methods=["POST"])
+
+@app.route("/delete/<int:prediction_id>", methods=["DELETE"])
 def delete_prediction(prediction_id):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("DELETE FROM predictions WHERE id = ?", (prediction_id,))
     conn.commit()
     conn.close()
-    
-    return redirect(url_for("history"))
+
+    return jsonify({"message": "Deleted successfully"})
+
+
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    try:
+        data = request.get_json()
+
+        name = data.get("name")
+        email = data.get("email")
+        rating = data.get("rating")
+        message = data["message"]
+
+    except Exception:
+        return jsonify({"error": "Invalid input"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO feedback (name, email, rating, message, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        name,
+        email,
+        rating,
+        message,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Feedback saved"})
+
 
 # =====================================================
-# RUN (FIXED FOR DOCKER)
+# RUN
 # =====================================================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

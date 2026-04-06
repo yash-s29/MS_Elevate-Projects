@@ -15,47 +15,63 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
+  // Lock scroll when menu open
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
+  const close = () => setOpen(false);
+
   return (
     <>
-      <nav className={'navbar' + (scrolled ? ' scrolled' : '')}>
+      <nav className={open ? 'navbar' : scrolled ? 'navbar scrolled' : 'navbar'}>
         <div className="nav-container">
-          <NavLink to="/" className="nav-brand" onClick={() => setOpen(false)}>
-            <span className="brand-icon">&#x1F343;</span>
+          <NavLink to="/" className="nav-brand" onClick={close}>
+            <span className="brand-icon">🍃</span>
             <span className="brand-text">Spoilage<strong>AI</strong></span>
           </NavLink>
 
-          <ul className={'nav-links' + (open ? ' open' : '')}>
+          <ul className={open ? 'nav-links open' : 'nav-links'}>
             {LINKS.map(([to, label]) => (
               <li key={to}>
                 <NavLink
                   to={to} end={to === '/'}
-                  className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
-                  onClick={() => setOpen(false)}
-                >{label}</NavLink>
+                  className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                  onClick={close}
+                >
+                  {label}
+                </NavLink>
               </li>
             ))}
           </ul>
 
           <div className="nav-actions">
-            <button className="theme-toggle" onClick={toggle} aria-label="Toggle dark mode">
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggle}
+              aria-label="Toggle dark mode"
+            >
               <span className="theme-icon">{theme === 'light' ? '☀️' : '🌙'}</span>
             </button>
             <button
-              className={'mob-toggle' + (open ? ' open' : '')}
+              type="button"
+              className={open ? 'mob-toggle open' : 'mob-toggle'}
               onClick={() => setOpen(o => !o)}
-              aria-label="Toggle menu"
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
             >
               <span /><span /><span />
             </button>
           </div>
         </div>
       </nav>
-      <div className={'mob-overlay' + (open ? ' visible' : '')} onClick={() => setOpen(false)} />
+      <div
+        className={open ? 'mob-overlay visible' : 'mob-overlay'}
+        onClick={close}
+        aria-hidden="true"
+      />
     </>
   );
 }

@@ -5,8 +5,7 @@ import PredictorForm from '../components/PredictorForm';
 export default function Result() {
   const { state } = useLocation();
   if (!state) return <Navigate to="/" replace />;
-
-  const { fruit, temp, humid, light, co2, prediction } = state;
+  const { fruit, temp, humid, light, co2, prediction, offline } = state;
   const good = prediction === 'Good';
 
   return (
@@ -14,8 +13,21 @@ export default function Result() {
 
       <Reveal>
         <section className={'card result-card ' + (good ? 'result-good' : 'result-bad')}>
+
+          {offline && (
+            <div style={{
+              background:'rgba(245,158,11,.1)', border:'1px solid rgba(245,158,11,.3)',
+              borderRadius:'var(--r-sm)', padding:'8px 14px', marginBottom:'16px',
+              fontSize:'.82rem', color:'var(--text-muted)'
+            }}>
+              ⚠️ Using offline prediction — connect Flask backend for ML results.
+            </div>
+          )}
+
           <div className="result-header">
-            <div className="result-icon-wrap">{good ? '✅' : '⚠️'}</div>
+            <div className={'result-icon-wrap ' + (good ? 'result-icon-good' : 'result-icon-bad')}>
+              {good ? '✅' : '⚠️'}
+            </div>
             <h1 className="result-title">{good ? 'Conditions Look Good' : 'Spoilage Risk Detected'}</h1>
             <p className="result-subtitle">
               {good
@@ -27,10 +39,10 @@ export default function Result() {
 
           <div className="result-params">
             {[
-              { icon: '🌡️', label: 'Temperature', val: temp + '°C' },
-              { icon: '💧', label: 'Humidity',    val: humid + '%' },
-              { icon: '💡', label: 'Light',       val: light + ' lux' },
-              { icon: '🌫️', label: 'CO₂',         val: co2 + ' ppm' },
+              {icon:'🌡️', label:'Temperature', val:temp+'°C'},
+              {icon:'💧', label:'Humidity',    val:humid+'%'},
+              {icon:'💡', label:'Light',       val:light+' lux'},
+              {icon:'🌫️', label:'CO₂',         val:co2+' ppm'},
             ].map(p => (
               <div key={p.label} className="result-param">
                 <span className="param-label">{p.icon} {p.label}</span>
@@ -62,15 +74,15 @@ export default function Result() {
           )}
 
           <div className="result-actions">
-            <Link to="/" className="btn btn-primary">← Make New Prediction</Link>
+            <Link to="/"        className="btn btn-primary">← New Prediction</Link>
             <Link to="/history" className="btn btn-secondary">View History</Link>
           </div>
         </section>
       </Reveal>
 
-      <Reveal delay={120}>
+      <Reveal delay={100}>
         <PredictorForm
-          defaults={{ fruit, temp, humid, light, co2 }}
+          defaults={{fruit, temp, humid, light, co2}}
           title="Run Another Analysis"
           subtitle="Adjust your parameters and predict again."
           btnLabel="Analyze Again"

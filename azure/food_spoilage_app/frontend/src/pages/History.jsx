@@ -12,13 +12,19 @@ const TrashIcon = () => (
   </svg>
 );
 
+function useModal() {
+  const [open, setOpen] = useState(false);
+  const show = () => { setOpen(true);  document.body.style.overflow='hidden'; };
+  const hide = () => { setOpen(false); document.body.style.overflow=''; };
+  return [open, show, hide];
+}
+
 function DeleteModal({ record, onClose, onConfirm }) {
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = e => { if(e.key==='Escape') onClose(); };
     document.addEventListener('keydown', fn);
     return () => document.removeEventListener('keydown', fn);
   }, [onClose]);
-
   if (!record) return null;
   return (
     <div className="modal open" role="dialog" aria-modal="true">
@@ -26,7 +32,7 @@ function DeleteModal({ record, onClose, onConfirm }) {
       <div className="modal-box">
         <div className="modal-head">
           <h3>Delete Record</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="modal-body">
           <span className="delete-icon">🗑️</span>
@@ -38,8 +44,8 @@ function DeleteModal({ record, onClose, onConfirm }) {
           <p className="warning-note">⚠ This action cannot be undone.</p>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-danger" onClick={() => { onConfirm(record.id); onClose(); }}>Delete Record</button>
+          <button type="button" className="btn btn-ghost"   onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-danger"  onClick={() => { onConfirm(record.id); onClose(); }}>Delete</button>
         </div>
       </div>
     </div>
@@ -48,48 +54,33 @@ function DeleteModal({ record, onClose, onConfirm }) {
 
 function StatusModal({ record, onClose }) {
   useEffect(() => {
-    const fn = (e) => { if (e.key === 'Escape') onClose(); };
+    const fn = e => { if(e.key==='Escape') onClose(); };
     document.addEventListener('keydown', fn);
     return () => document.removeEventListener('keydown', fn);
   }, [onClose]);
-
   if (!record) return null;
   const good = record.prediction === 'Good';
+  const tips = good
+    ? ['Temperature and humidity are within ideal ranges','Light exposure is minimal','CO₂ levels are appropriate']
+    : ['Check and adjust temperature settings','Regulate humidity levels','Minimize light exposure where possible'];
   return (
     <div className="modal open" role="dialog" aria-modal="true">
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal-box">
         <div className="modal-head">
           <h3>Storage Status</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="modal-body">
           <div className="status-result">
-            <span className="result-icon">{good ? '✅' : '⚠️'}</span>
-            <h4>{good ? 'Storage Conditions Optimal' : 'Spoilage Risk Detected'}</h4>
-            <p>{good
-              ? 'Your environment is well-maintained and food is at low risk of spoilage.'
-              : 'Current conditions may accelerate food deterioration.'
-            }</p>
-            <ul className="result-tips" style={{ textAlign: 'left', listStyle: 'none', padding: 0 }}>
-              {good ? (
-                <>
-                  <li style={{ paddingLeft: 16, position: 'relative', marginBottom: 6, fontSize: '0.9rem', color: 'var(--text-2)' }}>Temperature and humidity are within ideal ranges</li>
-                  <li style={{ paddingLeft: 16, position: 'relative', marginBottom: 6, fontSize: '0.9rem', color: 'var(--text-2)' }}>Light exposure is minimal</li>
-                  <li style={{ paddingLeft: 16, position: 'relative', fontSize: '0.9rem', color: 'var(--text-2)' }}>CO₂ levels are appropriate</li>
-                </>
-              ) : (
-                <>
-                  <li style={{ paddingLeft: 16, position: 'relative', marginBottom: 6, fontSize: '0.9rem', color: 'var(--text-2)' }}>Check and adjust temperature settings</li>
-                  <li style={{ paddingLeft: 16, position: 'relative', marginBottom: 6, fontSize: '0.9rem', color: 'var(--text-2)' }}>Regulate humidity levels</li>
-                  <li style={{ paddingLeft: 16, position: 'relative', fontSize: '0.9rem', color: 'var(--text-2)' }}>Minimize light exposure where possible</li>
-                </>
-              )}
-            </ul>
+            <span className="result-icon">{good?'✅':'⚠️'}</span>
+            <h4>{good?'Storage Conditions Optimal':'Spoilage Risk Detected'}</h4>
+            <p>{good?'Your environment is well-maintained and food is at low risk of spoilage.':'Current conditions may accelerate food deterioration.'}</p>
+            <ul>{tips.map(t=><li key={t}>{t}</li>)}</ul>
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-primary" onClick={onClose}>Got It</button>
+          <button type="button" className="btn btn-primary" onClick={onClose}>Got It</button>
         </div>
       </div>
     </div>
@@ -98,16 +89,20 @@ function StatusModal({ record, onClose }) {
 
 export default function History() {
   const { records, deleteRecord } = useHistory();
-  const [delTarget, setDelTarget] = useState(null);
-  const [statusTarget, setStatusTarget] = useState(null);
+  const [delRec, setDelRec]       = useState(null);
+  const [statusRec, setStatusRec] = useState(null);
 
-  const fmt = (v, d=1) => { const n = parseFloat(v); return isNaN(n) ? v : n.toFixed(d); };
+  const fmt = (v,d=1) => { const n=parseFloat(v); return isNaN(n)?v:n.toFixed(d); };
+
+  const openDel    = rec => { setDelRec(rec);    document.body.style.overflow='hidden'; };
+  const closeDel   = ()  => { setDelRec(null);   document.body.style.overflow=''; };
+  const openStatus = rec => { setStatusRec(rec); document.body.style.overflow='hidden'; };
+  const closeStatus= ()  => { setStatusRec(null); document.body.style.overflow=''; };
 
   return (
     <>
       <header className="page-header">
-        <div className="orb orb-sm orb-1" />
-        <div className="orb orb-sm orb-2" />
+        <div className="orb orb-1" /><div className="orb orb-2" />
         <div className="page-header-inner">
           <div className="eyebrow">📋 Your Records</div>
           <h1 className="page-title">Prediction History</h1>
@@ -118,12 +113,12 @@ export default function History() {
       <main className="main-container">
         {records.length > 0 ? (
           <Reveal>
-            <section className="card history-card">
+            <section className="card">
               <div className="history-header">
                 <div>
                   <span className="badge">📋 ANALYSIS RECORDS</span>
                   <h2>Your Predictions</h2>
-                  <p>{records.length} record{records.length !== 1 ? 's' : ''} found</p>
+                  <p>{records.length} record{records.length!==1?'s':''} found</p>
                 </div>
                 <Link to="/" className="btn btn-secondary">+ New Prediction</Link>
               </div>
@@ -134,7 +129,7 @@ export default function History() {
                   <thead>
                     <tr>
                       <th>Food Item</th><th>Temp</th><th>Humidity</th>
-                      <th>Light</th><th>CO&#8322;</th><th>Status</th><th>Date</th><th>Action</th>
+                      <th>Light</th><th>CO₂</th><th>Status</th><th>Date</th><th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -143,19 +138,20 @@ export default function History() {
                         <td><span className="food-chip">{row.fruit}</span></td>
                         <td>{fmt(row.temp)}°C</td>
                         <td>{fmt(row.humid)}%</td>
-                        <td>{fmt(row.light, 0)} lux</td>
-                        <td>{fmt(row.co2, 0)} ppm</td>
+                        <td>{fmt(row.light,0)} lux</td>
+                        <td>{fmt(row.co2,0)} ppm</td>
                         <td>
                           <button
-                            className={'status-pill ' + (row.prediction === 'Good' ? 'status-good' : 'status-bad')}
-                            onClick={() => setStatusTarget(row)}
+                            type="button"
+                            className={'status-pill '+(row.prediction==='Good'?'status-good':'status-bad')}
+                            onClick={()=>openStatus(row)}
                           >
-                            {row.prediction === 'Good' ? '✓ Good' : '⚠ At Risk'}
+                            {row.prediction==='Good'?'✓ Good':'⚠ At Risk'}
                           </button>
                         </td>
-                        <td className="date-cell">{(row.timestamp || '').split(' ')[0]}</td>
+                        <td className="date-cell">{(row.timestamp||'').split(' ')[0]}</td>
                         <td>
-                          <button className="btn-delete" onClick={() => setDelTarget(row)} aria-label="Delete">
+                          <button type="button" className="btn-delete" onClick={()=>openDel(row)} aria-label="Delete record">
                             <TrashIcon />
                           </button>
                         </td>
@@ -172,21 +168,22 @@ export default function History() {
                     <div className="mob-card-top">
                       <span className="food-chip">{row.fruit}</span>
                       <button
-                        className={'status-pill ' + (row.prediction === 'Good' ? 'status-good' : 'status-bad')}
-                        onClick={() => setStatusTarget(row)}
+                        type="button"
+                        className={'status-pill '+(row.prediction==='Good'?'status-good':'status-bad')}
+                        onClick={()=>openStatus(row)}
                       >
-                        {row.prediction === 'Good' ? '✓ Good' : '⚠ At Risk'}
+                        {row.prediction==='Good'?'✓ Good':'⚠ At Risk'}
                       </button>
                     </div>
                     <div className="mob-card-params">
                       <span>🌡️ {fmt(row.temp)}°C</span>
                       <span>💧 {fmt(row.humid)}%</span>
-                      <span>💡 {fmt(row.light, 0)} lux</span>
-                      <span>🌫️ {fmt(row.co2, 0)} ppm</span>
+                      <span>💡 {fmt(row.light,0)} lux</span>
+                      <span>🌫️ {fmt(row.co2,0)} ppm</span>
                     </div>
                     <div className="mob-card-foot">
-                      <span className="date-cell">{(row.timestamp || '').split(' ')[0]}</span>
-                      <button className="btn-delete" onClick={() => setDelTarget(row)}>
+                      <span className="date-cell">{(row.timestamp||'').split(' ')[0]}</span>
+                      <button type="button" className="btn-delete" onClick={()=>openDel(row)}>
                         <TrashIcon /> Delete
                       </button>
                     </div>
@@ -199,18 +196,18 @@ export default function History() {
           <Reveal>
             <section className="card empty-card">
               <div className="empty-state">
-                <div className="empty-icon">📭</div>
+                <span className="empty-icon">📭</span>
                 <h2>No Predictions Yet</h2>
                 <p>Start analyzing your storage conditions to see results here.</p>
-                <Link to="/" className="btn btn-primary">Make Your First Prediction →</Link>
+                <Link to="/" className="btn btn-primary btn-lg">Make Your First Prediction →</Link>
               </div>
             </section>
           </Reveal>
         )}
       </main>
 
-      <DeleteModal record={delTarget} onClose={() => setDelTarget(null)} onConfirm={deleteRecord} />
-      <StatusModal record={statusTarget} onClose={() => setStatusTarget(null)} />
+      {delRec    && <DeleteModal record={delRec}    onClose={closeDel}    onConfirm={deleteRecord} />}
+      {statusRec && <StatusModal record={statusRec} onClose={closeStatus} />}
     </>
   );
 }

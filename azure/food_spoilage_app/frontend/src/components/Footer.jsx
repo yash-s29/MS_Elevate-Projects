@@ -1,0 +1,35 @@
+import { motion } from 'framer-motion';
+
+export default function Footer() {
+  return (
+    <motion.footer
+      className="footer"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <div className="footer-inner">
+
+        <div className="footer-top">
+          <h3 className="footer-logo">SpoilageAI</h3>
+          <p className="footer-tagline">
+            Smarter storage. Less waste. Better future.
+          </p>
+        </div>
+
+        <div className="footer-bottom">
+          <p className="footer-copy">
+            © 2026 SpoilageAI · Sustainability Through Technology
+          </p>
+
+          <div className="footer-links">
+            <a href="#" className="footer-link">Privacy</a>
+            <a href="#" className="footer-link">Terms</a>
+            <a href="#" className="footer-link">Contact</a>
+          </div>
+        </div>
+
+      </div>
+    </motion.footer>
+  );
+}

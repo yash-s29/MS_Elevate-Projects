@@ -12,28 +12,24 @@ app = Flask(__name__)
 # =====================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-MODEL_PATH = os.path.join(
-    BASE_DIR, "..", "model", "artifacts", "spoilage_model.pkl"
-)
-
+MODEL_PATH = os.path.join(BASE_DIR, "..", "model", "artifacts", "spoilage_model.pkl")
 DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 # =====================================================
 # LOAD MODEL (fail fast if missing)
 # =====================================================
-try:
-    model = joblib.load(MODEL_PATH)
-except Exception as e:
-    raise RuntimeError(f"Failed to load ML model: {e}")
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
+
+model = joblib.load(MODEL_PATH)
 
 # =====================================================
-# DATABASE INITIALIZATION
+# DATABASE
 # =====================================================
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def init_db():
     conn = get_db_connection()
@@ -57,6 +53,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             email TEXT,
+            rating INTEGER,
             message TEXT NOT NULL,
             timestamp TEXT NOT NULL
         )
@@ -64,7 +61,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
 
 init_db()
 
@@ -74,51 +70,50 @@ init_db()
 
 @app.route("/")
 def index():
-    return render_template("index.html")
-
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
+    return "Flask API is running 🚀"
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
     if request.method == "POST":
         name = request.form.get("name")
         email = request.form.get("email")
+        rating = request.form.get("rating")
         message = request.form.get("message")
 
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO feedback (name, email, message, timestamp)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO feedback (name, email, rating, message, timestamp)
+            VALUES (?, ?, ?, ?, ?)
         """, (
             name,
             email,
+            rating,
             message,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
         conn.commit()
         conn.close()
 
-        return redirect(url_for("feedback"))
-
-    return render_template("feedback.html")
-
-
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        fruit = request.form["fruit"]
-        temp = float(request.form["temp"])
-        humid = float(request.form["humid_%"])
-        light = float(request.form["light_fux"])
-        co2 = float(request.form["co2_pmm"])
-    except (KeyError, ValueError):
-        return redirect(url_for("index"))
+        data = request.get_json()
 
+        # ✅ match frontend keys EXACTLY
+        fruit = data["fruit"]
+        temp = float(data["temp"])
+        humid = float(data["humid"])
+        light = float(data["light"])
+        co2 = float(data["co2"])
+
+    except (KeyError, ValueError, TypeError):
+        return jsonify({"error": "Invalid input"}), 400
+
+    # ✅ match your model feature names
     input_df = pd.DataFrame([{
         "fruit": fruit,
         "temp": temp,
@@ -130,6 +125,7 @@ def predict():
     prediction_num = model.predict(input_df)[0]
     prediction = "Good" if prediction_num == 1 else "Bad"
 
+    # ✅ store in DB (unchanged)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -148,22 +144,17 @@ def predict():
     conn.commit()
     conn.close()
 
-    return render_template("result.html", prediction=prediction)
-
-
+    # ✅ RETURN JSON (critical fix)
+    return jsonify({ "prediction": prediction })
 @app.route("/history")
 def history():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT * FROM predictions
-        ORDER BY id DESC
-    """)
+    cursor.execute("SELECT * FROM predictions ORDER BY id DESC")
     rows = cursor.fetchall()
     conn.close()
 
     return render_template("history.html", rows=rows)
-
 
 @app.route("/delete/<int:prediction_id>", methods=["POST"])
 def delete_prediction(prediction_id):
@@ -175,9 +166,8 @@ def delete_prediction(prediction_id):
     
     return redirect(url_for("history"))
 
-
 # =====================================================
-# RUN
+# RUN (FIXED FOR DOCKER)
 # =====================================================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

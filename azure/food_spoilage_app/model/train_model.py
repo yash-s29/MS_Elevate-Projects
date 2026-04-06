@@ -1,8 +1,5 @@
-# =========================================================
 # train_model.py
-# Phase 2 + Phase 3
 # Data Cleaning → Preprocessing → Model Training → Saving
-# =========================================================
 
 import os
 import pandas as pd
@@ -18,9 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-# -----------------------------
 # CONFIGURATION
-# -----------------------------
 DATA_PATH = "../data/food_spoilage.csv"   # adjust if needed
 RANDOM_STATE = 42
 TEST_SIZE = 0.2
@@ -28,9 +23,7 @@ TEST_SIZE = 0.2
 ARTIFACT_DIR = "artifacts"
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-# -----------------------------
 # 1. LOAD DATASET
-# -----------------------------
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError(f"Dataset not found at: {DATA_PATH}")
 
@@ -39,9 +32,7 @@ df = pd.read_csv(DATA_PATH)
 print("Initial dataset shape:", df.shape)
 print("Original columns:", df.columns.tolist())
 
-# -----------------------------
 # 2. CLEAN COLUMN NAMES
-# -----------------------------
 df.columns = (
     df.columns
     .str.strip()
@@ -64,9 +55,7 @@ missing_cols = expected_columns - set(df.columns)
 if missing_cols:
     raise ValueError(f"Missing expected columns: {missing_cols}")
 
-# -----------------------------
 # 3. CLEAN TARGET LABEL
-# -----------------------------
 df["class"] = df["class"].astype(str).str.strip().str.lower()
 df["class"] = df["class"].replace({"bad": "bad", "good": "good"})
 
@@ -77,15 +66,11 @@ print("\nAfter cleaning shape:", df.shape)
 print("\nClass distribution:")
 print(df["class"].value_counts())
 
-# -----------------------------
 # 4. FEATURE / TARGET SPLIT
-# -----------------------------
 X = df.drop("class", axis=1)
 y = df["class"]
 
-# -----------------------------
 # 5. TARGET ENCODING
-# -----------------------------
 label_encoder = LabelEncoder()
 y_encoded = label_encoder.fit_transform(y)
 
@@ -96,9 +81,7 @@ for cls, val in zip(label_encoder.classes_,
 
 joblib.dump(label_encoder, f"{ARTIFACT_DIR}/label_encoder.pkl")
 
-# -----------------------------
 # 6. PREPROCESSING PIPELINE
-# -----------------------------
 categorical_features = ["fruit"]
 numeric_features = ["temp", "humid_%", "light_fux", "co2_pmm"]
 
@@ -111,9 +94,7 @@ preprocessor = ColumnTransformer(
 
 joblib.dump(preprocessor, f"{ARTIFACT_DIR}/preprocessor.pkl")
 
-# -----------------------------
 # 7. TRAIN / TEST SPLIT
-# -----------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y_encoded,
@@ -125,9 +106,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 print("\nTrain size:", X_train.shape)
 print("Test size:", X_test.shape)
 
-# -----------------------------
 # 8. BASELINE MODEL — LOGISTIC REGRESSION
-# -----------------------------
 log_reg_pipeline = Pipeline(
     steps=[
         ("preprocessor", preprocessor),
@@ -151,9 +130,7 @@ print(classification_report(
     target_names=label_encoder.classes_
 ))
 
-# -----------------------------
 # 9. FINAL MODEL — RANDOM FOREST
-# -----------------------------
 rf_pipeline = Pipeline(
     steps=[
         ("preprocessor", preprocessor),
@@ -178,9 +155,7 @@ print(classification_report(
     target_names=label_encoder.classes_
 ))
 
-# -----------------------------
 # 10. MODEL SELECTION
-# -----------------------------
 print("\nMODEL COMPARISON")
 print("-" * 30)
 print(f"Logistic Regression Accuracy: {round(lr_accuracy, 4)}")
@@ -195,9 +170,7 @@ else:
 
 print(f"\nSelected Model: {selected}")
 
-# -----------------------------
 # 11. SAVE FINAL MODEL
-# -----------------------------
 joblib.dump(final_model, f"{ARTIFACT_DIR}/spoilage_model.pkl")
 
 print("\nFinal model saved at:")

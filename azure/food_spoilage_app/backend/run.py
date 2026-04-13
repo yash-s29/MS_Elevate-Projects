@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, Prediction, Feedback
+from backend.models import db, Prediction, Feedback
 import joblib
 import pandas as pd
 

@@ -1,213 +1,211 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useHistory } from '../context/HistoryContext';
-import Reveal from '../components/Reveal';
 
-const TrashIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-    <path d="M10 11v6M14 11v6"/>
-    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-  </svg>
-);
+const EMOJI = { Banana: '🍌', Orange: '🍊', Pineapple: '🍍', Tomato: '🍅' };
 
-function useModal() {
-  const [open, setOpen] = useState(false);
-  const show = () => { setOpen(true);  document.body.style.overflow='hidden'; };
-  const hide = () => { setOpen(false); document.body.style.overflow=''; };
-  return [open, show, hide];
-}
+const fmt = (v, d = 1) => {
+  const n = parseFloat(v);
+  return isNaN(n) ? '—' : n.toFixed(d);
+};
 
-function DeleteModal({ record, onClose, onConfirm }) {
-  useEffect(() => {
-    const fn = e => { if(e.key==='Escape') onClose(); };
-    document.addEventListener('keydown', fn);
-    return () => document.removeEventListener('keydown', fn);
-  }, [onClose]);
-  if (!record) return null;
-  return (
-    <div className="modal open" role="dialog" aria-modal="true">
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal-box">
-        <div className="modal-head">
-          <h3>Delete Record</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
-        <div className="modal-body">
-          <span className="delete-icon">🗑️</span>
-          <p>Are you sure you want to delete this prediction?</p>
-          <div className="record-preview">
-            <div className="preview-row"><span>Food Item:</span><strong>{record.fruit}</strong></div>
-            <div className="preview-row"><span>Status:</span><strong>{record.prediction}</strong></div>
-          </div>
-          <p className="warning-note">⚠ This action cannot be undone.</p>
-        </div>
-        <div className="modal-foot">
-          <button type="button" className="btn btn-ghost"   onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-danger"  onClick={() => { onConfirm(record.id); onClose(); }}>Delete</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+const normalize = row => ({
+  id:         row.id,
+  food:       row.food_item ?? row.fruit ?? '—',
+  temp:       row.temperature ?? row.temp,
+  humid:      row.humidity ?? row.humid,
+  light:      row.light,
+  co2:        row.co2,
+  prediction: row.prediction,
+  confidence: row.confidence,
+  created_at: row.created_at,
+});
 
-function StatusModal({ record, onClose }) {
-  useEffect(() => {
-    const fn = e => { if(e.key==='Escape') onClose(); };
-    document.addEventListener('keydown', fn);
-    return () => document.removeEventListener('keydown', fn);
-  }, [onClose]);
-  if (!record) return null;
-  const good = record.prediction === 'Good';
-  const tips = good
-    ? ['Temperature and humidity are within ideal ranges','Light exposure is minimal','CO₂ levels are appropriate']
-    : ['Check and adjust temperature settings','Regulate humidity levels','Minimize light exposure where possible'];
-  return (
-    <div className="modal open" role="dialog" aria-modal="true">
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal-box">
-        <div className="modal-head">
-          <h3>Storage Status</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
-        <div className="modal-body">
-          <div className="status-result">
-            <span className="result-icon">{good?'✅':'⚠️'}</span>
-            <h4>{good?'Storage Conditions Optimal':'Spoilage Risk Detected'}</h4>
-            <p>{good?'Your environment is well-maintained and food is at low risk of spoilage.':'Current conditions may accelerate food deterioration.'}</p>
-            <ul>{tips.map(t=><li key={t}>{t}</li>)}</ul>
-          </div>
-        </div>
-        <div className="modal-foot">
-          <button type="button" className="btn btn-primary" onClick={onClose}>Got It</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+const fmtDate = d =>
+  d
+    ? new Date(d).toLocaleString(undefined, {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : '—';
 
 export default function History() {
-  const { records, deleteRecord } = useHistory();
-  const [delRec, setDelRec]       = useState(null);
-  const [statusRec, setStatusRec] = useState(null);
+  const { records, deleteRecord, loadingHistory, refreshHistory } = useHistory();
+  const [deletingId, setDeletingId] = useState(null);
+  const [message, setMessage]       = useState('');
+  const [msgError, setMsgError]     = useState(false);
 
-  const fmt = (v,d=1) => { const n=parseFloat(v); return isNaN(n)?v:n.toFixed(d); };
+  const handleDelete = async id => {
+    setDeletingId(id);
+    const result = await deleteRecord(id);
+    if (result.success) {
+      setMessage('Record deleted successfully.');
+      setMsgError(false);
+    } else {
+      setMessage('Delete failed: ' + result.error);
+      setMsgError(true);
+    }
+    setTimeout(() => setMessage(''), 3000);
+    setDeletingId(null);
+  };
 
-  const openDel    = rec => { setDelRec(rec);    document.body.style.overflow='hidden'; };
-  const closeDel   = ()  => { setDelRec(null);   document.body.style.overflow=''; };
-  const openStatus = rec => { setStatusRec(rec); document.body.style.overflow='hidden'; };
-  const closeStatus= ()  => { setStatusRec(null); document.body.style.overflow=''; };
+  /* ── Loading ── */
+  if (loadingHistory) return (
+    <main className="main-container">
+      <div className="card" style={{ textAlign: 'center', padding: '64px 24px' }}>
+        <div className="loader" style={{ margin: '0 auto 18px' }} />
+        <p style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Loading prediction history…</p>
+      </div>
+    </main>
+  );
+
+  /* ── Empty ── */
+  if (records.length === 0) return (
+    <main className="main-container">
+      <div className="card empty-card">
+        <div className="empty-state">
+          <span className="empty-icon">📭</span>
+          <h2>No Predictions Yet</h2>
+          <p>Run your first spoilage prediction to see your history here.</p>
+          <Link to="/" className="btn btn-primary">Make a Prediction →</Link>
+        </div>
+      </div>
+    </main>
+  );
 
   return (
-    <>
-      <header className="page-header">
-        <div className="orb orb-1" /><div className="orb orb-2" />
-        <div className="page-header-inner">
-          <div className="eyebrow">📋 Your Records</div>
-          <h1 className="page-title">Prediction History</h1>
-          <p className="page-sub">View and manage all your past storage analysis records.</p>
+    <main className="main-container">
+
+      {/* Header */}
+      <div className="history-header">
+        <div>
+          <div className="eyebrow" style={{ marginBottom: '10px' }}>📜 Records</div>
+          <h2>Prediction History</h2>
         </div>
-      </header>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={refreshHistory}
+          disabled={loadingHistory}
+        >
+          🔄 Refresh
+        </button>
+      </div>
 
-      <main className="main-container">
-        {records.length > 0 ? (
-          <Reveal>
-            <section className="card">
-              <div className="history-header">
-                <div>
-                  <span className="badge">📋 ANALYSIS RECORDS</span>
-                  <h2>Your Predictions</h2>
-                  <p>{records.length} record{records.length!==1?'s':''} found</p>
+      {/* Status toast */}
+      {message && (
+        <div className={`status-message${msgError ? ' error' : ''}`} role="alert">
+          {msgError ? '❌' : '✅'} {message}
+        </div>
+      )}
+
+      {/* ── DESKTOP TABLE ──────────────────────────────────────── */}
+      <div className="history-table-wrap">
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Food</th>
+              <th>Temp °C</th>
+              <th>Humidity %</th>
+              <th>Light lux</th>
+              <th>CO₂ ppm</th>
+              <th>Status</th>
+              <th>Confidence</th>
+              <th>Created</th>
+              <th><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map(row => {
+              const r = normalize(row);
+              const busy = deletingId === r.id;
+              return (
+                <tr key={r.id} className={busy ? 'faded-row' : ''}>
+                  <td style={{ color: 'var(--text-faint)', fontSize: '.80rem' }}>#{r.id}</td>
+                  <td style={{ fontWeight: 700 }}>
+                    {EMOJI[r.food] || '🥬'} {r.food}
+                  </td>
+                  <td>{fmt(r.temp)}</td>
+                  <td>{fmt(r.humid)}</td>
+                  <td>{fmt(r.light)}</td>
+                  <td>{fmt(r.co2)}</td>
+                  <td>
+                    <span className={`status ${r.prediction}`}>
+                      {r.prediction === 'Good' ? '✓ Good' : '⚠ Bad'}
+                    </span>
+                  </td>
+                  <td>
+                    {typeof r.confidence === 'number'
+                      ? `${(r.confidence * 100).toFixed(1)}%`
+                      : '—'}
+                  </td>
+                  <td style={{ color: 'var(--text-faint)', fontSize: '.80rem' }}>
+                    {fmtDate(r.created_at)}
+                  </td>
+                  <td>
+                    <button
+                      className="delete-btn"
+                      onClick={() => handleDelete(r.id)}
+                      disabled={busy}
+                      aria-label={`Delete record #${r.id}`}
+                    >
+                      {busy ? '⏳' : '🗑 Delete'}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── MOBILE CARDS ─────────────────────────────────────────── */}
+      <div className="history-mobile">
+        {records.map(row => {
+          const r    = normalize(row);
+          const busy = deletingId === r.id;
+          return (
+            <article key={r.id} className={`history-mob-card${busy ? ' faded-row' : ''}`}>
+              <div className="mob-card-top">
+                <div className="mob-food-label">
+                  <span aria-hidden="true">{EMOJI[r.food] || '🥬'}</span>
+                  {r.food}
                 </div>
-                <Link to="/" className="btn btn-secondary">+ New Prediction</Link>
+                <span className={`status ${r.prediction}`}>
+                  {r.prediction === 'Good' ? '✓ Good' : '⚠ Bad'}
+                </span>
               </div>
 
-              {/* Desktop table */}
-              <div className="table-wrap">
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Food Item</th><th>Temp</th><th>Humidity</th>
-                      <th>Light</th><th>CO₂</th><th>Status</th><th>Date</th><th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.map(row => (
-                      <tr key={row.id} className="table-row">
-                        <td><span className="food-chip">{row.fruit}</span></td>
-                        <td>{fmt(row.temp)}°C</td>
-                        <td>{fmt(row.humid)}%</td>
-                        <td>{fmt(row.light,0)} lux</td>
-                        <td>{fmt(row.co2,0)} ppm</td>
-                        <td>
-                          <button
-                            type="button"
-                            className={'status-pill '+(row.prediction==='Good'?'status-good':'status-bad')}
-                            onClick={()=>openStatus(row)}
-                          >
-                            {row.prediction==='Good'?'✓ Good':'⚠ At Risk'}
-                          </button>
-                        </td>
-                        <td className="date-cell">{(row.timestamp||'').split(' ')[0]}</td>
-                        <td>
-                          <button type="button" className="btn-delete" onClick={()=>openDel(row)} aria-label="Delete record">
-                            <TrashIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mob-card-params">
+                <span>🌡️ {fmt(r.temp)} °C</span>
+                <span>💧 {fmt(r.humid)} %</span>
+                <span>💡 {fmt(r.light)} lux</span>
+                <span>🌫️ {fmt(r.co2)} ppm</span>
               </div>
 
-              {/* Mobile cards */}
-              <div className="history-mobile">
-                {records.map(row => (
-                  <div key={row.id} className="history-mob-card">
-                    <div className="mob-card-top">
-                      <span className="food-chip">{row.fruit}</span>
-                      <button
-                        type="button"
-                        className={'status-pill '+(row.prediction==='Good'?'status-good':'status-bad')}
-                        onClick={()=>openStatus(row)}
-                      >
-                        {row.prediction==='Good'?'✓ Good':'⚠ At Risk'}
-                      </button>
+              <div className="mob-card-foot">
+                <div>
+                  {typeof r.confidence === 'number' && (
+                    <div style={{ fontSize: '.78rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '3px' }}>
+                      Confidence: {(r.confidence * 100).toFixed(1)}%
                     </div>
-                    <div className="mob-card-params">
-                      <span>🌡️ {fmt(row.temp)}°C</span>
-                      <span>💧 {fmt(row.humid)}%</span>
-                      <span>💡 {fmt(row.light,0)} lux</span>
-                      <span>🌫️ {fmt(row.co2,0)} ppm</span>
-                    </div>
-                    <div className="mob-card-foot">
-                      <span className="date-cell">{(row.timestamp||'').split(' ')[0]}</span>
-                      <button type="button" className="btn-delete" onClick={()=>openDel(row)}>
-                        <TrashIcon /> Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )}
+                  <div className="mob-card-date">{fmtDate(r.created_at)}</div>
+                </div>
+                <button
+                  className="delete-btn"
+                  onClick={() => handleDelete(r.id)}
+                  disabled={busy}
+                  aria-label={`Delete record for ${r.food}`}
+                >
+                  {busy ? '⏳' : '🗑 Delete'}
+                </button>
               </div>
-            </section>
-          </Reveal>
-        ) : (
-          <Reveal>
-            <section className="card empty-card">
-              <div className="empty-state">
-                <span className="empty-icon">📭</span>
-                <h2>No Predictions Yet</h2>
-                <p>Start analyzing your storage conditions to see results here.</p>
-                <Link to="/" className="btn btn-primary btn-lg">Make Your First Prediction →</Link>
-              </div>
-            </section>
-          </Reveal>
-        )}
-      </main>
+            </article>
+          );
+        })}
+      </div>
 
-      {delRec    && <DeleteModal record={delRec}    onClose={closeDel}    onConfirm={deleteRecord} />}
-      {statusRec && <StatusModal record={statusRec} onClose={closeStatus} />}
-    </>
+    </main>
   );
 }

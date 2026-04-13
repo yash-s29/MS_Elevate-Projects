@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
-const LINKS = [['/', 'Home'], ['/about', 'About'], ['/feedback', 'Feedback'], ['/history', 'History']];
+const LINKS = [
+  { to: '/',         label: 'Home'     },
+  { to: '/about',    label: 'About'    },
+  { to: '/feedback', label: 'Feedback' },
+  { to: '/history',  label: 'History'  },
+];
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]         = useState(false);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
@@ -15,7 +20,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  // Lock scroll when menu open
+  /* Lock body scroll when mobile menu is open */
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -25,19 +30,23 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={open ? 'navbar' : scrolled ? 'navbar scrolled' : 'navbar'}>
+      <nav className={`navbar${!open && scrolled ? ' scrolled' : ''}`}>
         <div className="nav-container">
-          <NavLink to="/" className="nav-brand" onClick={close}>
-            <span className="brand-icon">🍃</span>
+
+          {/* Brand */}
+          <NavLink to="/" className="nav-brand" onClick={close} aria-label="SpoilageAI — go home">
+            <span className="brand-icon" aria-hidden="true">🍃</span>
             <span className="brand-text">Spoilage<strong>AI</strong></span>
           </NavLink>
 
-          <ul className={open ? 'nav-links open' : 'nav-links'}>
-            {LINKS.map(([to, label]) => (
+          {/* Desktop + mobile nav links */}
+          <ul className={`nav-links${open ? ' open' : ''}`} id="main-nav" role="list">
+            {LINKS.map(({ to, label }) => (
               <li key={to}>
                 <NavLink
-                  to={to} end={to === '/'}
-                  className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}
+                  to={to}
+                  end={to === '/'}
+                  className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                   onClick={close}
                 >
                   {label}
@@ -46,29 +55,40 @@ export default function Navbar() {
             ))}
           </ul>
 
+          {/* Right actions */}
           <div className="nav-actions">
             <button
               type="button"
               className="theme-toggle"
               onClick={toggle}
-              aria-label="Toggle dark mode"
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             >
-              <span className="theme-icon">{theme === 'light' ? '☀️' : '🌙'}</span>
+              <span className="theme-icon" aria-hidden="true">
+                {theme === 'light' ? '🌙' : '☀️'}
+              </span>
             </button>
+
             <button
               type="button"
-              className={open ? 'mob-toggle open' : 'mob-toggle'}
+              className={`mob-toggle${open ? ' open' : ''}`}
               onClick={() => setOpen(o => !o)}
               aria-label={open ? 'Close menu' : 'Open menu'}
               aria-expanded={open}
+              aria-controls="main-nav"
             >
-              <span /><span /><span />
+              <span aria-hidden="true" />
+              <span aria-hidden="true" />
+              <span aria-hidden="true" />
             </button>
           </div>
+
         </div>
       </nav>
+
+      {/* Overlay dims content when menu is open */}
       <div
-        className={open ? 'mob-overlay visible' : 'mob-overlay'}
+        className={`mob-overlay${open ? ' visible' : ''}`}
         onClick={close}
         aria-hidden="true"
       />

@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 CORS(app, origins=["http://localhost:5173"])
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:Yss2005@localhost:3307/spoilage_ai"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost:3307"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
